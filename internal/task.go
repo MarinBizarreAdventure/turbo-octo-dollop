@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -44,7 +45,7 @@ func (t *TaskManager) LoadTasks() (*TaskManager, error) {
 	}
 	var tasks TaskManager
 	err = json.Unmarshal(data, &tasks)
-
+	t.NextId = tasks.NextId
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +81,9 @@ func (t *TaskManager) Add() {
 		CreatedAt: time.Now(),
 	}
 	t.NextId++
-	tasks.Tasks = append(tasks.Tasks, *task)
 
+	tasks.Tasks = append(tasks.Tasks, *task)
+	tasks.NextId = t.NextId
 	err = t.SaveTasks(tasks)
 	if err != nil {
 		fmt.Println("add error: %w", err)
@@ -101,9 +103,41 @@ func (t *TaskManager) List() {
 }
 
 func (t *TaskManager) Done() {
-
+	tasks, err := t.LoadTasks()
+	if err != nil {
+		fmt.Println("load err: %w", err)
+		return
+	}
+	sid := os.Args[2]
+	if sid == "" {
+		fmt.Println("no id was given as an argument")
+		return
+	}
+	id, err := strconv.Atoi(sid)
+	for i := range tasks.Tasks {
+		if tasks.Tasks[i].ID == id {
+			tasks.Tasks[i].Done = true
+			t.SaveTasks(tasks)
+			return
+		}
+	}
 }
 
 func (t *TaskManager) Delete() {
-
+	tasks, err := t.LoadTasks()
+	if err != nil {
+		fmt.Println("error loading: %w", err)
+		return
+	}
+	id, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		fmt.Println("error converting id: %w", err)
+		return
+	}
+	for i := range tasks.Tasks {
+		if tasks.Tasks[i].ID == id {
+			tasks.Tasks = append(tasks.Tasks[:i], tasks.Tasks[i+1:]...)
+			t.SaveTasks(tasks)
+		}
+	}
 }
