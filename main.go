@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/MarinBizarreAdventure/task-cli/internal"
 )
 
 func main() {
@@ -10,18 +12,18 @@ func main() {
 		fmt.Println("usage: task [add|list|done|delete] [args]")
 		return
 	}
-
-	command := os.Args[2]
+	command := os.Args[1]
+	tm := internal.NewTaskManager()
 
 	switch command {
 	case "add":
-		//TODO
+		tm.Add()
 	case "list":
-		//TODO
+		tm.List()
 	case "done":
-		//TODO
+		tm.Done()
 	case "delete":
-		//TODO
+		tm.Delete()
 	default:
 		fmt.Println("unkown command:", command)
 	}
