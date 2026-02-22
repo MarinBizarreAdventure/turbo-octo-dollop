@@ -28,28 +28,15 @@ func NewTaskManager() *TaskManager {
 	}
 }
 
-func (t *TaskManager) LoadTasks() (*TaskManager, error) {
+func (t *TaskManager) LoadTasks() error {
 	data, err := os.ReadFile("tasks.json")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			initialData := &TaskManager{}
-			jsonData, _ := json.Marshal(initialData)
-			err = os.WriteFile("tasks.json", jsonData, 0644)
-			if err != nil {
-				return nil, err
-			}
-			return initialData, nil
+			return nil
 		}
-		return nil, err
+		return err
 	}
-	var tasks TaskManager
-	err = json.Unmarshal(data, &tasks)
-	if err != nil {
-		return nil, err
-	}
-	t.NextId = tasks.NextId
-
-	return &tasks, nil
+	return json.Unmarshal(data, t)
 }
 
 func (t *TaskManager) SaveTasks(tasks *TaskManager) error {
