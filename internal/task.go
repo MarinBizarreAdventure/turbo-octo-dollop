@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -39,8 +38,8 @@ func (t *TaskManager) LoadTasks() error {
 	return json.Unmarshal(data, t)
 }
 
-func (t *TaskManager) SaveTasks(tasks *TaskManager) error {
-	data, err := json.MarshalIndent(tasks, "", "  ")
+func (t *TaskManager) SaveTasks() error {
+	data, err := json.MarshalIndent(t, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -48,32 +47,22 @@ func (t *TaskManager) SaveTasks(tasks *TaskManager) error {
 
 }
 
-func (t *TaskManager) Add() {
-	tasks, err := t.LoadTasks()
-
-	if err != nil {
-		fmt.Println("load task error: ", err)
+func (t *TaskManager) Add(title string) {
+	if err := t.LoadTasks(); err != nil {
+		fmt.Println("load error: ", err)
 		return
 	}
 
-	if len(os.Args) < 3 {
-		fmt.Println("there is no task to add")
-		return
-	}
-	title := os.Args[2]
-	task := &Task{
+	t.Tasks = append(t.Tasks, Task{
 		ID:        t.NextId,
 		Title:     title,
 		Done:      false,
 		CreatedAt: time.Now(),
-	}
+	})
 	t.NextId++
 
-	tasks.Tasks = append(tasks.Tasks, *task)
-	tasks.NextId = t.NextId
-	err = t.SaveTasks(tasks)
-	if err != nil {
-		fmt.Println("add error: ", err)
+	if err := t.SaveTasks(); err != nil {
+		fmt.Println("save error: ", err)
 		return
 	}
 	fmt.Println("task added successfully")
@@ -81,55 +70,52 @@ func (t *TaskManager) Add() {
 }
 
 func (t *TaskManager) List() {
-	tasks, err := t.LoadTasks()
-	if err != nil {
+	if err := t.LoadTasks(); err != nil {
 		fmt.Println("error loading tasks: ", err)
 		return
 	}
-	fmt.Println(tasks)
+	if len(t.Tasks) == 0 {
+		fmt.Println("no tasks")
+		return
+	}
+
+	for _, task := range t.Tasks {
+		status := "[ ]"
+		if task.Done {
+			status = "[x]"
+		}
+		fmt.Printf("%s %d: %s \n", status, task.ID, task.Title)
+	}
 }
 
-func (t *TaskManager) Done() {
-	tasks, err := t.LoadTasks()
-	if err != nil {
-		fmt.Println("load err: ", err)
+func (t *TaskManager) Done(id int) {
+	if err := t.LoadTasks(); err != nil {
+		fmt.Println("load error: ", err)
 		return
 	}
-	sid := os.Args[2]
-	if sid == "" {
-		fmt.Println("no id was given as an argument")
-		return
-	}
-	id, err := strconv.Atoi(sid)
-	if err != nil {
-		fmt.Println("error converting string to int: ", err)
-		return
-	}
-	for i := range tasks.Tasks {
-		if tasks.Tasks[i].ID == id {
-			tasks.Tasks[i].Done = true
-			t.SaveTasks(tasks)
+	for i := range t.Tasks {
+		if t.Tasks[i].ID == id {
+			t.Tasks[i].Done = true
+			t.SaveTasks()
+			fmt.Println("task done")
 			return
 		}
 	}
+	fmt.Println("task not found")
 }
 
-func (t *TaskManager) Delete() {
-	tasks, err := t.LoadTasks()
-	if err != nil {
+func (t *TaskManager) Delete(id int) {
+	if err := t.LoadTasks(); err != nil {
 		fmt.Println("error loading: ", err)
 		return
 	}
-	id, err := strconv.Atoi(os.Args[2])
-	if err != nil {
-		fmt.Println("error converting id: ", err)
-		return
-	}
-	for i := range tasks.Tasks {
-		if tasks.Tasks[i].ID == id {
-			tasks.Tasks = append(tasks.Tasks[:i], tasks.Tasks[i+1:]...)
-			t.SaveTasks(tasks)
+	for i := range t.Tasks {
+		if t.Tasks[i].ID == id {
+			t.Tasks = append(t.Tasks[:i], t.Tasks[i+1:]...)
+			t.SaveTasks()
+			fmt.Println("task deleted successfully")
 			return
 		}
 	}
+	fmt.Println("task not found")
 }
