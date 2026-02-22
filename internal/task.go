@@ -18,7 +18,7 @@ type Task struct {
 
 type TaskManager struct {
 	Tasks  []Task `json:"tasks"`
-	NextId int    `json:"netx_id"`
+	NextId int    `json:"next_id"`
 }
 
 func NewTaskManager() *TaskManager {
@@ -38,17 +38,17 @@ func (t *TaskManager) LoadTasks() (*TaskManager, error) {
 			if err != nil {
 				return nil, err
 			}
-
-			return initialData, err
+			return initialData, nil
 		}
 		return nil, err
 	}
 	var tasks TaskManager
 	err = json.Unmarshal(data, &tasks)
-	t.NextId = tasks.NextId
 	if err != nil {
 		return nil, err
 	}
+	t.NextId = tasks.NextId
+
 	return &tasks, nil
 }
 
@@ -65,11 +65,11 @@ func (t *TaskManager) Add() {
 	tasks, err := t.LoadTasks()
 
 	if err != nil {
-		fmt.Println("load task error: %w", err)
+		fmt.Println("load task error: ", err)
 		return
 	}
 
-	if os.Args[2] == "" {
+	if len(os.Args) < 3 {
 		fmt.Println("there is no task to add")
 		return
 	}
@@ -86,7 +86,7 @@ func (t *TaskManager) Add() {
 	tasks.NextId = t.NextId
 	err = t.SaveTasks(tasks)
 	if err != nil {
-		fmt.Println("add error: %w", err)
+		fmt.Println("add error: ", err)
 		return
 	}
 	fmt.Println("task added successfully")
@@ -96,7 +96,7 @@ func (t *TaskManager) Add() {
 func (t *TaskManager) List() {
 	tasks, err := t.LoadTasks()
 	if err != nil {
-		fmt.Println("error loading tasks: %w", err)
+		fmt.Println("error loading tasks: ", err)
 		return
 	}
 	fmt.Println(tasks)
@@ -105,7 +105,7 @@ func (t *TaskManager) List() {
 func (t *TaskManager) Done() {
 	tasks, err := t.LoadTasks()
 	if err != nil {
-		fmt.Println("load err: %w", err)
+		fmt.Println("load err: ", err)
 		return
 	}
 	sid := os.Args[2]
@@ -114,6 +114,10 @@ func (t *TaskManager) Done() {
 		return
 	}
 	id, err := strconv.Atoi(sid)
+	if err != nil {
+		fmt.Println("error converting string to int: ", err)
+		return
+	}
 	for i := range tasks.Tasks {
 		if tasks.Tasks[i].ID == id {
 			tasks.Tasks[i].Done = true
@@ -126,18 +130,19 @@ func (t *TaskManager) Done() {
 func (t *TaskManager) Delete() {
 	tasks, err := t.LoadTasks()
 	if err != nil {
-		fmt.Println("error loading: %w", err)
+		fmt.Println("error loading: ", err)
 		return
 	}
 	id, err := strconv.Atoi(os.Args[2])
 	if err != nil {
-		fmt.Println("error converting id: %w", err)
+		fmt.Println("error converting id: ", err)
 		return
 	}
 	for i := range tasks.Tasks {
 		if tasks.Tasks[i].ID == id {
 			tasks.Tasks = append(tasks.Tasks[:i], tasks.Tasks[i+1:]...)
 			t.SaveTasks(tasks)
+			return
 		}
 	}
 }
